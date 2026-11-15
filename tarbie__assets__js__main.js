@@ -1,0 +1,42 @@
+'use strict';
+(() => {
+const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+const body=document.body,root=body.dataset.root||'',page=body.dataset.page;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let toastTimer;function toast(message){const e=$('#toast');e.textContent=message;e.className='toast-visible';clearTimeout(toastTimer);toastTimer=setTimeout(()=>{e.textContent='';e.className=''},4200)}
+const KEY='tarbie-alemi:v1';let marks={favorites:[],viewed:[]};
+try{const saved=JSON.parse(localStorage.getItem(KEY));if(saved&&Array.isArray(saved.favorites)&&Array.isArray(saved.viewed))marks=saved;}catch{}
+function saveMarks(){try{localStorage.setItem(KEY,JSON.stringify(marks));return true;}catch{toast('Бұл браузерде белгілерді сақтау қолжетімсіз. Олар осы ашық бетте ғана көрінеді.');return false;}}
+function status(id){return (marks.favorites.includes(id)?'★ ':'')+(marks.viewed.includes(id)?'✓ Қаралған':'');}
+function updateCardStatus(){$$('[data-status]').forEach(e=>e.textContent=status(e.dataset.status));}
+function download(name,text){const blob=new Blob(['\ufeff'+text],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+if(page==='home'||page==='grade'){
+const search=$('#search'),grade=$('#grade-filter'),direction=$('#direction-filter'),view=$('#view-filter');let pageIndex=0;const pageSize=18;
+if(page==='grade'){grade.value=body.dataset.grade;grade.disabled=true;}
+const params=new URLSearchParams(location.search);if(params.get('view')==='favorites')view.value='favorites';
+function matches(x){const q=search.value.trim().toLocaleLowerCase('kk');return (!q||x.search.toLocaleLowerCase('kk').includes(q))&&(!grade.value||x.grade===Number(grade.value))&&(!direction.value||x.direction===direction.value)&&(view.value==='all'||view.value==='favorites'&&marks.favorites.includes(x.id)||view.value==='viewed'&&marks.viewed.includes(x.id)||view.value==='new'&&!marks.viewed.includes(x.id));}
+function render(){const found=(window.TARBIE_CATALOG||[]).filter(matches);$('#result-count').textContent=found.length+' тақырып табылды';
+if(page==='grade'){const ids=new Set(found.map(x=>x.id));$$('#class-results .topic-card').forEach(e=>e.hidden=!ids.has(e.dataset.id));$('#class-empty').hidden=found.length>0;updateCardStatus();return;}
+const total=Math.max(1,Math.ceil(found.length/pageSize));pageIndex=Math.min(pageIndex,total-1);const shown=found.slice(pageIndex*pageSize,(pageIndex+1)*pageSize);
+$('#catalog-results').innerHTML=shown.length?shown.map(x=>`<a class="topic-card" href="${root}${x.path}"><div class="card-top"><span class="topic-icon" aria-hidden="true">${x.icon}</span><span class="tag">${x.grade}-сынып</span><span class="card-status">${status(x.id)}</span></div><span class="direction-label">${esc(x.direction)}</span><h3>${esc(x.title)}</h3><p>5 жағдаят · жұптық · топтық · 5 сұрақ · кері байланыс</p><span class="read-link">Сабақты ашу →</span></a>`).join(''):'<p class="empty">Материал табылмады. Іздеу сөзін немесе сүзгіні өзгертіңіз. Таңдаулыға сабақ ішіндегі ☆ батырмасымен қосуға болады.</p>';
+$('#pagination').innerHTML=found.length?`<button id="prev-page" type="button" ${pageIndex===0?'disabled':''}>← Алдыңғы</button><span class="muted">${pageIndex+1} / ${total}</span><button id="next-page" type="button" ${pageIndex>=total-1?'disabled':''}>Келесі →</button>`:'';
+if($('#prev-page'))$('#prev-page').onclick=()=>{pageIndex--;render();};if($('#next-page'))$('#next-page').onclick=()=>{pageIndex++;render();};}
+[search,grade,direction,view].forEach(e=>e.addEventListener(e===search?'input':'change',()=>{pageIndex=0;render();}));
+$('#reset-filter').onclick=()=>{search.value='';grade.value=page==='grade'?body.dataset.grade:'';direction.value='';view.value='all';pageIndex=0;render();};
+if($('#clear-marks'))$('#clear-marks').onclick=()=>{marks={favorites:[],viewed:[]};saveMarks();render();toast('Таңдаулы мен қаралған белгілер тазаланды.');};render();
+}
+if(page==='lesson'){
+const id=body.dataset.lesson;const tabs=$$('[role=tab]'),panels=$$('.tab-panel');
+function activate(key,focus=false){const target=tabs.find(t=>t.dataset.tab===key)||tabs[0];tabs.forEach(t=>{const active=t===target;t.setAttribute('aria-selected',String(active));t.tabIndex=active?0:-1;});panels.forEach(p=>p.hidden=p.id!==target.getAttribute('aria-controls'));if(focus)target.focus();}
+tabs.forEach((tab,i)=>{tab.onclick=()=>{activate(tab.dataset.tab);history.replaceState(null,'','#'+tab.dataset.tab);};tab.onkeydown=e=>{let n=i;if(e.key==='ArrowRight')n=(i+1)%tabs.length;else if(e.key==='ArrowLeft')n=(i+tabs.length-1)%tabs.length;else if(e.key==='Home')n=0;else if(e.key==='End')n=tabs.length-1;else return;e.preventDefault();activate(tabs[n].dataset.tab,true);history.replaceState(null,'','#'+tabs[n].dataset.tab);};});activate(location.hash.slice(1));window.addEventListener('hashchange',()=>activate(location.hash.slice(1)));
+function updateMarks(){const fav=marks.favorites.includes(id),seen=marks.viewed.includes(id);$('#favorite').textContent=fav?'★ Таңдаулыдан алу':'☆ Таңдаулыға қосу';$('#favorite').setAttribute('aria-pressed',String(fav));$('#mark-viewed').textContent=seen?'✓ Қаралған белгісін алу':'○ Қаралды деп белгілеу';$('#mark-viewed').setAttribute('aria-pressed',String(seen));}
+$('#favorite').onclick=()=>{marks.favorites=marks.favorites.includes(id)?marks.favorites.filter(x=>x!==id):[...marks.favorites,id];saveMarks();updateMarks();};$('#mark-viewed').onclick=()=>{marks.viewed=marks.viewed.includes(id)?marks.viewed.filter(x=>x!==id):[...marks.viewed,id];saveMarks();updateMarks();};updateMarks();
+$$('.quiz-option').forEach(button=>button.onclick=()=>{const box=button.closest('.quiz');box.querySelectorAll('.quiz-option').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));const correct=Number(button.dataset.option)===Number(box.dataset.correct),result=box.querySelector('.quiz-result');result.hidden=false;result.textContent=(correct?'Орынды жауап. ':'Бұл таңдауды қайта қара. ')+result.dataset.explanation;});
+let responses=[];const form=$('#feedback-form');function showFeedback(){$('#feedback-count').textContent=responses.length+' анонимді жауап тіркелді.';const ratings=['Түсіндім','Жаттығамын','Көмек керек'];$('#feedback-tally').innerHTML='<div class="tally">'+ratings.map(r=>`<span>${r}: <b>${responses.filter(x=>x.confidence===r).length}</b></span>`).join('')+'</div>';$('#feedback-list').innerHTML=responses.length?responses.map((r,i)=>`<section class="feedback-response"><strong>Жауап ${i+1} · ${esc(r.confidence)}</strong>${r.answers.map((a,n)=>`<p><b>${n+1}.</b> ${esc(a||'Ауызша жауап / мәтін енгізілмеген')}</p>`).join('')}</section>`).join(''):'<p class="muted">Әзірге жауап жоқ.</p>';}
+form.addEventListener('submit',event=>{event.preventDefault();const selected=form.querySelector('input[name=confidence]:checked');if(!selected){toast('Алдымен өзіндік бағалау белгісін таңдаңыз.');return;}responses.push({confidence:selected.value,answers:[0,1,2].map(i=>$('#reflection-'+i).value.trim())});form.reset();showFeedback();toast('Анонимді жауап тіркелді. Келесі оқушы жауап бере алады.');});
+$('#export-feedback').onclick=()=>{if(!responses.length){toast('Әзірге жауап жоқ.');return;}const title=$('.lesson-head h1').textContent;const text=title+'\nАнонимді кері байланыс\nЖауап саны: '+responses.length+'\n\n'+responses.map((r,i)=>'Жауап '+(i+1)+' · '+r.confidence+'\n'+r.answers.map((a,n)=>(n+1)+'. '+(a||'Ауызша жауап / мәтін жоқ')).join('\n')).join('\n\n');download(id+'-keri-bailanys.txt',text);toast('Кері байланыс файлы жүктеуге дайын.');};
+$('#clear-feedback').onclick=()=>{responses=[];showFeedback();toast('Осы сессия жауаптары өшірілді.');};
+function printDraft(){let p=$('#print-feedback');if(!p){p=document.createElement('div');p.id='print-feedback';p.className='print-feedback';$('#panel-reflection').appendChild(p);}p.innerHTML='<h3>Ағымдағы жауап үлгісі</h3>'+[0,1,2].map(i=>`<section><strong>${esc($('label[for="reflection-'+i+'"]').textContent)}</strong><div>${esc($('#reflection-'+i).value||'________________________________')}</div></section>`).join('');}
+$('#print-lesson').onclick=()=>{printDraft();window.print();};window.addEventListener('beforeprint',printDraft);showFeedback();
+}
+})();

@@ -1,0 +1,32 @@
+{
+  "classes": 11,
+  "topics_per_class": 30,
+  "topic_pages": 330,
+  "static_html_pages": 342,
+  "standalone_html_files": 1,
+  "scenario_tasks": 1650,
+  "pair_tasks": 330,
+  "group_tasks": 330,
+  "creative_tasks": 330,
+  "discussion_questions": 1650,
+  "feedback_forms": 330,
+  "internal_link_checks": 5742,
+  "errors": [],
+  "checks": [
+    "330 unique titles",
+    "five distinct situations per lesson",
+    "age-specific task instructions",
+    "five discussion questions",
+    "pair/group/creative activities",
+    "all five tabs",
+    "three reflection prompts",
+    "closed teacher answers",
+    "all internal links and fragments",
+    "40-minute schedules",
+    "JS syntax",
+    "DOM-simulated interactions",
+    "standalone HTML route/tab/query DOM simulation"
+  ],
+  "visual_browser_qa": "Unavailable: supported browser QA infrastructure absent. Responsive CSS and reduced-motion rules inspected; real mobile rendering not verified.",
+  "external_resources": "Six supporting official/UNICEF sources checked on 2026-10-25. No verified videos included; all 330 lessons have complete offline creative alternatives."
+}
