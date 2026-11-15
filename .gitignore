@@ -1,0 +1,4 @@
+# Private runtime data; never publish student records or sessions.
+uy-tapsyrmalary/private-data/
+node_modules/
+.DS_Store
